@@ -1,0 +1,66 @@
+name: Continuous Integration & Deployment (CI/CD)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout repository
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # 2. Setup Python 3.10
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    # 3. Install Poetry
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 2.0.0
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    # 4. Cache Poetry Virtual Environment
+    - name: Cache Poetry Virtualenv
+      uses: actions/cache@v3
+      id: cached-poetry-dependencies
+      with:
+        path: .venv
+        key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+
+    # 5. Install Dependencies (if cache miss)
+    - name: Install Dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-interaction --no-root
+
+    # 6. Run Linter (Ruff)
+    - name: Run Linter (Ruff)
+      run: |
+        poetry run pip install ruff
+        poetry run ruff check .
+
+    # 7. Execute Data Processing and Training
+    # Ensures the datasets are correctly parsed and best_model.joblib is generated for testing
+    - name: Run Data Processing and Model Training
+      run: |
+        poetry run python -c "import os; os.chdir('src'); import processing; processing.run_full_processing_pipeline('path_config.yaml')"
+        poetry run python -c "import os; os.chdir('src'); import train_best_model; train_best_model.train_and_save_model()"
+
+    # 8. Run Automated Unit Tests
+    - name: Run Unit Tests with Pytest
+      run: |
+        poetry run pytest -v
+
+    # 9. Build Docker Image (Docker Ready check!)
+    - name: Build Docker Image
+      run: |
+        docker build -t antibody-scoring-api:latest .

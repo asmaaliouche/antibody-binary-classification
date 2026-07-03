@@ -63,3 +63,7 @@ Thumbs.db
 # Project-specific caches/data
 data/final_dataset.parquet
 /Users/asmaaliouche/.gemini/
+
+# Local databases and logs
+*.db
+*.log
