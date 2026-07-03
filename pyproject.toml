@@ -1,0 +1,43 @@
+[project]
+name = "classification-production"
+version = "0.1.0"
+description = "Production scoring API and monitoring for antibody classification"
+authors = [
+    {name = "asma.aliouche"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.22.0",
+    "pyyaml>=6.0",
+    "scikit-learn>=1.2.0",
+    "optuna>=3.0.0",
+    "xgboost>=1.7.0",
+    "openpyxl>=3.1.0",
+    "pyarrow>=11.0.0",
+    "gcsfs>=2023.1.0",
+    "fastapi>=0.95.0",
+    "uvicorn>=0.20.0",
+    "pytest>=7.0.0",
+    "evidently>=0.4.0",
+    "httpx>=0.23.0",
+    "onnx",
+    "onnxruntime<=1.23.2",
+    "joblib>=1.2.0"
+]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+# Target Python version
+target-version = "py310"
+
+[tool.ruff.lint]
+# Ignore module-level import rules (E402) in Jupyter notebooks because sys.path modifications are required
+per-file-ignores = { "*.ipynb" = ["E402"] }

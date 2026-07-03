@@ -1,0 +1,24 @@
+[project]
+name = "classification"
+version = "0.1.0"
+description = ""
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "numpy",
+    "pyyaml",
+    "scikit-learn",
+    "optuna",
+    "xgboost",
+    "openpyxl",
+    "pyarrow",
+    "gcsfs"
+]
+
+[tool.poetry]
+package-mode = false
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

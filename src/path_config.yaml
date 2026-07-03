@@ -1,0 +1,9 @@
+paths:
+  raw_data: "../data/antibodies_raw_dataset.xlsx"
+  output_dataset: "../data/final_dataset.parquet"
+params:
+  hic_threshold: 11.5
+embeddings:
+  esm2: "../data/esm2_embeddings.parquet"
+  prott5: "../data/prott5_embeddings.parquet"
+  antiberty: "../data/antiberty_embeddings.parquet"
