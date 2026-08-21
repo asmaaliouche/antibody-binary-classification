@@ -38,6 +38,14 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 # Target Python version
 target-version = "py310"
+exclude = [
+    ".git",
+    ".venv",
+    "src/.venv",
+    "__pycache__",
+    "build",
+    "dist"
+]
 
 [tool.ruff.lint]
 # Ignore module-level import rules (E402) in Jupyter notebooks because sys.path modifications are required
