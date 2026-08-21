@@ -11,21 +11,23 @@ This script implements a complete pipeline for:
 """
 
 import logging
-import numpy as np
-import pandas as pd
-import optuna
 import os
-from typing import Dict, Any, Type, Callable
+from collections.abc import Callable
+from typing import Any, ClassVar
+
+import numpy as np
+import optuna
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import StratifiedKFold, train_test_split, cross_validate
-from sklearn.linear_model import LogisticRegression, RidgeClassifier
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
-from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier
-from sklearn.metrics import average_precision_score, roc_auc_score
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,14 +42,14 @@ class ModelRegistry:
     Acts as a central repository for all available machine learning models
     and their associated hyperparameter search spaces for Optuna.
     """
-    _registry: Dict[str, Dict[str, Any]] = {}
+    _registry: ClassVar[dict[str, dict[str, Any]]] = {}
 
     @classmethod
     def register(cls, name: str, search_space_fn: Callable):
         """
         Decorator to register a model class with its HPO search space.
         """
-        def wrapper(model_class: Type):
+        def wrapper(model_class: type):
             cls._registry[name] = {
                 "class": model_class, 
                 "search_space": search_space_fn
@@ -65,7 +67,6 @@ class ModelRegistry:
 })
 class RegisteredLR(LogisticRegression): 
     """Logistic Regression with L2 Regularization."""
-    pass
 
 @ModelRegistry.register("svc", lambda t: {
     "C": t.suggest_float("C", 0.1, 10, log=True),
@@ -73,7 +74,6 @@ class RegisteredLR(LogisticRegression):
 })
 class RegisteredSVC(SVC): 
     """Support Vector Classifier with RBF kernel."""
-    pass
 
 @ModelRegistry.register("randomforest", lambda t: {
     "n_estimators": t.suggest_int("n_estimators", 50, 200),
@@ -81,7 +81,6 @@ class RegisteredSVC(SVC):
 })
 class RegisteredRF(RandomForestClassifier): 
     """Random Forest Ensemble Classifier."""
-    pass
 
 @ModelRegistry.register("xgb", lambda t: {
     "n_estimators": t.suggest_int("n_estimators", 50, 200),
@@ -89,21 +88,18 @@ class RegisteredRF(RandomForestClassifier):
 })
 class RegisteredXGB(XGBClassifier): 
     """Extreme Gradient Boosting (XGBoost) Classifier."""
-    pass
 
 @ModelRegistry.register("knn", lambda t: {
     "n_neighbors": t.suggest_int("n_neighbors", 3, 15)
 })
 class RegisteredKNN(KNeighborsClassifier): 
     """K-Nearest Neighbors Classifier."""
-    pass
 
 @ModelRegistry.register("ridge", lambda t: {
     "alpha": t.suggest_float("alpha", 0.1, 10.0, log=True)
 })
 class RegisteredRidge(RidgeClassifier): 
     """Ridge Classifier (Linear model with L2 penalty)."""
-    pass
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FEATURE PREPARATION
@@ -147,7 +143,7 @@ def prepare_features_for_embedding(df: pd.DataFrame, emb_type: str) -> pd.DataFr
             
     return X_emb
 
-def build_pipeline(model_name: str, params: Dict[str, Any]) -> Pipeline:
+def build_pipeline(model_name: str, params: dict[str, Any]) -> Pipeline:
     """
     Encapsulates preprocessing and model training into a scikit-learn Pipeline.
     Ensures that scaling and imputation are done separately for each fold (preventing data leakage).
@@ -222,7 +218,7 @@ def run_benchmarking(data_path: str):
         )
         
         # Test each model family defined in the Registry
-        for model_key in ModelRegistry._registry.keys():
+        for model_key in ModelRegistry._registry:
             logger.info(f"Searching best parameters for {model_key} using {emb_name}...")
             study = run_hpo(model_key, X_train, y_train, n_trials=20)
             

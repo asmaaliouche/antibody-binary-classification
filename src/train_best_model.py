@@ -4,11 +4,17 @@ train_best_model.py - Train and serialize the winning ProtT5 + Logistic Regressi
 
 import logging
 import os
+
 import joblib
 import pandas as pd
+from sklearn.metrics import (
+    average_precision_score,
+    classification_report,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, roc_auc_score, average_precision_score
-from modeling import prepare_features_for_embedding, build_pipeline
+
+from modeling import build_pipeline, prepare_features_for_embedding
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
