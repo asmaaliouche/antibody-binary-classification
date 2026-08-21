@@ -5,16 +5,16 @@ Includes database-backed call logging, strict data validation, and lookup-based 
 
 import logging
 import os
+import sqlite3
 import sys
 import time
-import sqlite3
+
 import joblib
-import pandas as pd
 import numpy as np
-from typing import Optional
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 
 # Setup path
@@ -70,20 +70,20 @@ def init_db():
         conn.commit()
         conn.close()
         logger.info(f"SQLite log database initialized successfully at: {db_path}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to initialize SQLite log database: {e}")
 
 def log_api_call(
-    antibody_id: Optional[str],
+    antibody_id: str | None,
     vh: str,
     vl: str,
-    tm_app: Optional[float],
-    psr: Optional[float],
-    prediction: Optional[int],
-    probability: Optional[float],
+    tm_app: float | None,
+    psr: float | None,
+    prediction: int | None,
+    probability: float | None,
     latency_ms: float,
     status_code: int,
-    error_message: Optional[str] = None
+    error_message: str | None = None
 ):
     """Inserts a single API call log entry into the SQLite database."""
     try:
@@ -98,7 +98,7 @@ def log_api_call(
         ))
         conn.commit()
         conn.close()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to write API call log to database: {e}")
 
 # -----------------------------------------------------------------------------
@@ -107,7 +107,7 @@ def log_api_call(
 VALID_AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
 
 class PredictionRequest(BaseModel):
-    antibody_id: Optional[str] = Field(None, example="Ab-42", description="Optional identifier for the antibody clone")
+    antibody_id: str | None = Field(None, example="Ab-42", description="Optional identifier for the antibody clone")
     vh: str = Field(..., example="EVQLVESGGGLVQPGGSLRLSCAASGFTFSDYAMHWVRQAPGKGLEW", description="Heavy chain (VH) protein sequence")
     vl: str = Field(..., example="DIQMTQSPSSLSASVGDRVTITCRASQGISNYLAWYQQKPGKAPKLLIY", description="Light chain (VL) protein sequence")
     tm_app: float = Field(..., example=68.5, description="Apparent melting temperature (°C)")
@@ -122,7 +122,7 @@ class PredictionRequest(BaseModel):
         # Verify valid amino acids
         invalid_chars = set(val_clean) - VALID_AMINO_ACIDS
         if invalid_chars:
-            raise ValueError(f"Sequence contains invalid amino acid characters: {sorted(list(invalid_chars))}")
+            raise ValueError(f"Sequence contains invalid amino acid characters: {sorted(invalid_chars)}")
         return val_clean
 
     @validator("tm_app")
@@ -141,7 +141,7 @@ class PredictionRequest(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    antibody_id: Optional[str]
+    antibody_id: str | None
     prediction: int = Field(..., description="0 = Low/Medium HIC risk, 1 = High HIC risk")
     probability: float = Field(..., description="Predicted probability of being High HIC")
     lookup_status: str = Field(..., description="exact_match, nearest_match, or fallback_average")
@@ -168,7 +168,7 @@ def startup_event():
         try:
             model_pipeline = joblib.load(model_path)
             logger.info("Model pipeline loaded successfully.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.critical(f"Failed to load model pipeline: {e}")
             raise RuntimeError(f"Could not load serialized model: {e}")
     else:
@@ -188,7 +188,7 @@ def startup_event():
             embedding_lookup_df["vh_clean"] = embedding_lookup_df["vh"].str.replace("-", "", regex=False).str.strip().str.upper()
             embedding_lookup_df["vl_clean"] = embedding_lookup_df["vl"].str.replace("-", "", regex=False).str.strip().str.upper()
             logger.info(f"Loaded {len(embedding_lookup_df)} reference sequences for lookup.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.critical(f"Failed to load lookup dataset: {e}")
             raise RuntimeError(f"Could not load lookup dataset: {e}")
     else:
@@ -240,8 +240,6 @@ def find_embeddings_for_sequences(vh_req: str, vl_req: str):
     2. Nearest Match: Calculate Hamming/Levenshtein distance to find closest sequences.
     3. Fallback: Mean of all training embeddings.
     """
-    global embedding_lookup_df
-    
     # 1. Try Exact Match
     exact_match = embedding_lookup_df[
         (embedding_lookup_df["vh_clean"] == vh_req) & 
@@ -331,7 +329,7 @@ def predict_hic_risk(request: PredictionRequest):
             latency_ms=round(latency_ms, 2)
         )
         
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         latency_ms = (time.time() - start_time) * 1000.0
         logger.error(f"Internal API error during prediction: {e}")
         
@@ -350,5 +348,5 @@ def predict_hic_risk(request: PredictionRequest):
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal Server Error: {str(e)}"
+            detail=f"Internal Server Error: {e!s}"
         )

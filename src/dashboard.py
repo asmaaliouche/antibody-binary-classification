@@ -4,14 +4,15 @@ Tailored specifically for Antibody Developability and High-HIC Risk Scoring.
 Strictly professional design with no emojis.
 """
 
+import datetime
 import os
 import sqlite3
-import datetime
+
+import httpx
 import numpy as np
 import pandas as pd
-import streamlit as st
 import plotly.express as px
-import httpx
+import streamlit as st
 from evidently import Report
 from evidently.presets import DataDriftPreset
 
@@ -201,7 +202,7 @@ def seed_database_if_empty():
                 
                 # Seed some exact match calls (30 rows with standard values)
                 exact_rows = ref_df.sample(min(30, len(ref_df)), random_state=42)
-                now = datetime.datetime.now()
+                now = datetime.datetime.now(datetime.timezone.utc)
                 
                 for i, (_, row) in enumerate(exact_rows.iterrows()):
                     # Simulate standard request
@@ -255,7 +256,7 @@ def seed_database_if_empty():
                 conn.commit()
                 st.success("Seeding completed successfully! Refreshing dashboard...")
         conn.close()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         st.error(f"Error seeding database: {e}")
 
 # Ensure database exists and is seeded
@@ -283,9 +284,9 @@ latency_threshold = st.sidebar.slider(
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("Model Specifications")
-st.sidebar.markdown("""
+st.sidebar.markdown(r"""
 * **Task**: Binary Developability Risk Classification
-* **Positive Class**: High HIC Risk (Retention $\ge$ 11.5 min)
+* **Positive Class**: High HIC Risk (Retention ≥ 11.5 min)
 * **Model Family**: Winner ProtT5 + Logistic Regression
 * **Prevalence**: ~4% in training library (highly imbalanced)
 * **Strategy**: `class_weight='balanced'` + threshold tuning
@@ -327,7 +328,7 @@ try:
     conn = get_db_connection()
     logs_df = pd.read_sql_query("SELECT * FROM api_logs ORDER BY timestamp DESC", conn)
     conn.close()
-except Exception as e:
+except Exception as e:  # noqa: BLE001
     st.error(f"Failed to read production logs database: {e}")
     logs_df = pd.DataFrame()
 
@@ -529,7 +530,7 @@ with tab_sandbox:
                 poetry run uvicorn src.app:app --reload --host 127.0.0.1 --port 8000
                 ```
                 """)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 st.error(f"An unexpected error occurred: {e}")
 
 # -----------------------------------------------------------------------------
@@ -754,7 +755,7 @@ with tab_monitoring:
                 )
                 st.plotly_chart(fig_overlap, use_container_width=True)
         else:
-            st.warning(f"""
+            st.warning(rf"""
             **Insufficient live queries in database (current: {len(prod_data)} successful queries, minimum 30 required) to perform automated Data Drift statistical tests.**
             
             ### Why is a larger sample size necessary?
@@ -762,7 +763,7 @@ with tab_monitoring:
             
             1. **High Type II Error Rate**: With extremely small sample sizes (e.g., fewer than 30), statistical tests have low sensitivity (low power). They are highly likely to fail to detect a real biological drift (false negative), giving a false sense of security.
             2. **Unrepresentative Distributions**: Visual representations (like histograms and box plots) are highly volatile with small datasets. A single outlier sequence can dramatically alter the apparent shape of the distribution, leading to incorrect visual interpretations.
-            3. **KS Test Requirements**: The Kolmogorov-Smirnov test compares physical curves (distributions) of the training reference vs production queries. To make a scientifically valid comparison, we need a minimum group of 30 physical data points ($N \ge 30$) so that the mathematical shape of our production population is stable enough to compare against the reference library.
+            3. **KS Test Requirements**: The Kolmogorov-Smirnov test compares physical curves (distributions) of the training reference vs production queries. To make a scientifically valid comparison, we need a minimum group of 30 physical data points (N ≥ 30) so that the mathematical shape of our production population is stable enough to compare against the reference library.
             
             **Action Required**:
             * Continue screening more antibodies through the FastAPI endpoint to accumulate more live production queries.

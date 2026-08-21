@@ -4,16 +4,17 @@ test_pipeline.py - Unit tests for data processing and model pipeline
 
 import os
 import sys
-import pytest
-import pandas as pd
-import numpy as np
+
 import joblib
+import numpy as np
+import pandas as pd
+import pytest
 
 # Add src/ to python path so we can import modules
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from processing import load_and_clean_experimental_data
 from modeling import prepare_features_for_embedding
+from processing import load_and_clean_experimental_data
 
 
 @pytest.fixture

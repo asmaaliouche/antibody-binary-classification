@@ -3,11 +3,11 @@ processing.py - Clean Data Preparation for Antibody Classification
 """
 
 import logging
-import yaml
-import pandas as pd
-import numpy as np
 import os
-from typing import Dict
+
+import numpy as np
+import pandas as pd
+import yaml
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +39,7 @@ def load_and_clean_experimental_data(
     }
     
     # Filter and rename
-    available_cols = [c for c in cols.keys() if c in df.columns]
+    available_cols = [c for c in cols if c in df.columns]
     df = df[available_cols].rename(columns={k: v for k, v in cols.items() if k in available_cols})
     
     # Sequence standardization: Removes gaps/dashes for PLM tokenizers
@@ -62,7 +62,7 @@ def load_and_clean_experimental_data(
 
 def merge_all_plm_embeddings(
     main_df: pd.DataFrame, 
-    embedding_map: Dict[str, str]
+    embedding_map: dict[str, str]
 ) -> pd.DataFrame:
     """
     Merges multiple PLM embedding files (ESM2, ProtT5, AntiBERTy) into the main dataframe.
@@ -80,7 +80,7 @@ def merge_all_plm_embeddings(
             emb_df = emb_df.rename(columns={vh_col: f"vh_emb_{model_name}", vl_col: f"vl_emb_{model_name}"})
             cols_to_join = ["antibody_id", f"vh_emb_{model_name}", f"vl_emb_{model_name}"]
             combined_df = combined_df.merge(emb_df[cols_to_join], on="antibody_id", how="left")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Error merging {model_name}: {e}")
             
     return combined_df
