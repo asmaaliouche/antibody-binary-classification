@@ -56,9 +56,9 @@ RUN chown -R appuser:appuser /app
 # Switch to non-privileged user
 USER appuser
 
-# Healthcheck to verify FastAPI is up
+# Healthcheck to verify FastAPI is up (uses built-in python to avoid installing curl on slim image)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
 
 # Command to run FastAPI server under Uvicorn
 CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]
